@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- Required so the page fits phone screens -->
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Faculty Information Data Entry System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -365,11 +365,11 @@
           </button>
           
           <button type="button" id="btnSave" onclick="handleSave()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-semibold transition shadow-sm">
-            Save Record & Email PDF
+            Save Record
           </button>
 
           <button type="button" id="btnUpdate" onclick="handleUpdate()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition shadow-sm hidden">
-            Update Record & Email PDF
+            Update Record
           </button>
         </div>
 
@@ -631,6 +631,17 @@
       container.appendChild(div);
     }
 
+    // Shows already-saved files (one row each, with a Delete button)
+    function existingFilesHtml(urlStr, label) {
+      const urls = String(urlStr || '').split(/\s*[|\n]\s*/).filter(u => u && u !== 'No File');
+      if (!urls.length) return '';
+      return '<div class="text-xs my-1 space-y-1">' + urls.map((u, i) =>
+        '<div class="existing-file flex items-center justify-between gap-2 bg-white p-2 rounded border border-slate-200" data-url="' + u + '">' +
+        '<a href="' + u + '" target="_blank" class="text-emerald-700 underline font-medium">📄 ' + label + (urls.length > 1 ? ' ' + (i + 1) : '') + '</a>' +
+        '<button type="button" class="text-red-600 hover:text-red-800 font-semibold text-xs px-2 py-1 shrink-0" onclick="deletedUrls.push(this.parentElement.dataset.url); this.parentElement.remove();">Delete</button>' +
+        '</div>').join('') + '</div>';
+    }
+
     function addIdItem(title="", agency="", number="", validity="", existingUrl="") {
       const container = document.getElementById('idsContainer');
       const div = document.createElement('div');
@@ -656,9 +667,9 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-700">Upload ID Document <span class="text-slate-400">(Saved with ID Number as name)</span></label>
-          ${existingUrl && existingUrl !== 'No File' ? `<div class="text-xs my-1 text-emerald-700"><a href="${existingUrl}" target="_blank" class="underline">📄 View Existing ID Doc</a></div>` : ''}
-          <input type="file" class="id-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
+          <label class="block text-xs font-medium text-slate-700">Upload ID Document(s) <span class="text-slate-400">(You can select more than one file, e.g. front and back)</span></label>
+          ${existingFilesHtml(existingUrl, 'View ID Document')}
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg" multiple class="id-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
         </div>
         ${container.children.length > 0 ? REMOVE_BTN_CORNER : ''}
       `;
@@ -709,9 +720,9 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-700">Upload Training Certificate <span class="text-slate-400">(Saved with Title keywords)</span></label>
-          ${existingUrl && existingUrl !== 'No File' ? `<div class="text-xs my-1 text-emerald-700"><a href="${existingUrl}" target="_blank" class="underline">📄 View Existing Certificate</a></div>` : ''}
-          <input type="file" class="training-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
+          <label class="block text-xs font-medium text-slate-700">Upload Training Certificate(s) <span class="text-slate-400">(You can select more than one file)</span></label>
+          ${existingFilesHtml(existingUrl, 'View Certificate')}
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg" multiple class="training-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
         </div>
         ${container.children.length > 0 ? REMOVE_BTN_CORNER : ''}
       `;
@@ -964,6 +975,11 @@
       return Promise.all(Array.from(input.files).map(fileToPayload));
     }
 
+    async function getFilesFromInput(inputEl) {
+      if (!inputEl || !inputEl.files || inputEl.files.length === 0) return [];
+      return Promise.all(Array.from(inputEl.files).map(fileToPayload));
+    }
+
     function checkTotalSize(data) {
       const mb = JSON.stringify(data).length / 1048576;
       if (mb > MAX_TOTAL_MB) {
@@ -983,22 +999,22 @@
 
       const idElements = Array.from(document.querySelectorAll('.id-item'));
       const ids = await Promise.all(idElements.map(async el => {
-        const fileInput = el.querySelector('.id-file');
-        const fileData = await getSingleFileData(fileInput);
+        const fileData = await getFilesFromInput(el.querySelector('.id-file'));
+        const existingUrls = Array.from(el.querySelectorAll('.existing-file')).map(d => d.dataset.url);
         return {
           title: el.querySelector('.id-title').value.trim(),
           agency: el.querySelector('.id-agency').value.trim(),
           number: el.querySelector('.id-number').value.trim(),
           validity: el.querySelector('.id-validity').value.trim(),
-          file: fileData,
-          existingUrl: el.dataset.existingUrl || ""
+          files: fileData,
+          existingUrls: existingUrls
         };
       }));
 
       const trElements = Array.from(document.querySelectorAll('.training-item'));
       const trainings = await Promise.all(trElements.map(async el => {
-        const fileInput = el.querySelector('.training-file');
-        const fileData = await getSingleFileData(fileInput);
+        const fileData = await getFilesFromInput(el.querySelector('.training-file'));
+        const existingUrls = Array.from(el.querySelectorAll('.existing-file')).map(d => d.dataset.url);
         return {
           category: el.querySelector('.training-category').value.trim(),
           title: el.querySelector('.training-title').value.trim(),
@@ -1006,8 +1022,8 @@
           location: el.querySelector('.training-location').value.trim(),
           startDate: el.querySelector('.training-start-date').value.trim(),
           endDate: el.querySelector('.training-end-date').value.trim(),
-          file: fileData,
-          existingUrl: el.dataset.existingUrl || ""
+          files: fileData,
+          existingUrls: existingUrls
         };
       }));
 
@@ -1046,7 +1062,7 @@
       }
 
       setButtonsBusy(true);
-      showStatus("Saving record, generating Bio-Data PDF, and emailing faculty member... Please wait.");
+      showStatus("Saving record... Please wait.");
       let data;
       try {
         showStatus("Preparing files... Please wait.");
@@ -1057,7 +1073,7 @@
         showStatus(e.message, true);
         return;
       }
-      showStatus("Sending to server, generating Bio-Data PDF, and emailing... Please wait (this can take up to a minute).");
+      showStatus("Sending to server... Please wait (this can take up to a minute).");
 
       callServer('saveRecord', [data], res => {
         setButtonsBusy(false);
@@ -1069,7 +1085,7 @@
       if (!validateAll()) return;
 
       setButtonsBusy(true);
-      showStatus("Updating record, regenerating Bio-Data PDF, and emailing faculty member... Please wait.");
+      showStatus("Updating record... Please wait.");
       let data;
       try {
         showStatus("Preparing files... Please wait.");
@@ -1080,7 +1096,7 @@
         showStatus(e.message, true);
         return;
       }
-      showStatus("Sending to server, generating Bio-Data PDF, and emailing... Please wait (this can take up to a minute).");
+      showStatus("Sending to server... Please wait (this can take up to a minute).");
 
       callServer('updateRecord', [data], res => {
         setButtonsBusy(false);
