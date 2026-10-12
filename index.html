@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Required so the page fits phone screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Faculty Information Data Entry System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+
+    /* Prevent sideways scrolling on phones */
+    html, body { overflow-x: hidden; }
+
+    /* Reliable scrolling inside the Google Sites embed box (Android + iPhone):
+       the page itself does not scroll; one full-size box scrolls instead */
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    #appScroll {
+      position: fixed;
+      top: 0; right: 0; bottom: 0; left: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    input[type="file"] { max-width: 100%; }
+    a, #statusMessage, #landingStatus { overflow-wrap: anywhere; }
+
+    /* iPhone zooms in when an input is smaller than 16px — this stops that */
+    @media (max-width: 640px) {
+      input, select, textarea { font-size: 16px !important; }
+    }
+
+    /* Bigger, easier tap targets for remove buttons */
+    .remove-btn {
+      width: 2rem; height: 2rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0; border-radius: 9999px;
+    }
+
+    button:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* Desktop step tabs */
+    .step-tab {
+      padding: .55rem .5rem; border-radius: .5rem; font-size: .8rem; font-weight: 600;
+      border: 1px solid #cbd5e1; background: #fff; color: #475569; transition: background .15s, color .15s;
+    }
+    .step-tab:hover { background: #f0fdf4; }
+    .step-tab.is-done { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .step-tab.is-active { background: #047857; color: #fff; border-color: #047857; }
+
+    /* Clear, easy-to-grab scrollbar on desktop */
+    #appScroll::-webkit-scrollbar { width: 10px; }
+    #appScroll::-webkit-scrollbar-track { background: #ecfdf5; }
+    #appScroll::-webkit-scrollbar-thumb { background: #6ee7b7; border-radius: 9999px; border: 2px solid #ecfdf5; }
+    #appScroll::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    #appScroll { scrollbar-width: thin; scrollbar-color: #6ee7b7 #ecfdf5; }
+  </style>
+</head>
+<body class="bg-emerald-50 text-slate-800">
+<div id="appScroll" class="bg-emerald-50 py-3 px-2 sm:py-8 sm:px-4">
+
+  <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg border border-emerald-100 overflow-hidden">
+    
+    <!-- Header -->
+    <div class="bg-emerald-800 text-white py-3 px-4 sm:py-6 sm:px-8 flex flex-row justify-between items-center gap-3">
+      <div>
+        <h1 class="text-base sm:text-2xl font-bold tracking-tight leading-tight">Faculty Information System</h1>
+        <p class="hidden sm:block text-emerald-200 text-sm mt-1">Institutional Data Entry, Updates, and Document Repository</p>
+      </div>
+      <div id="empIdBadge" class="text-right hidden shrink-0">
+        <span class="text-[10px] sm:text-xs uppercase text-emerald-300 font-semibold tracking-wider block">Employee No.</span>
+        <input type="text" id="empId" readonly class="mt-1 bg-emerald-900 border border-emerald-700 text-emerald-100 font-mono font-bold text-center px-2 py-1 rounded w-28 sm:w-40 text-sm focus:outline-none" placeholder="Generating...">
+      </div>
+    </div>
+
+    <!-- LANDING SCREEN -->
+    <div id="landingScreen" class="p-4 sm:p-10 space-y-4 sm:space-y-8 text-center max-w-2xl mx-auto">
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold text-emerald-900">Welcome to the Faculty Portal</h2>
+        <p class="text-slate-600 text-xs sm:text-sm mt-1 sm:mt-2">Please select an option below to proceed with your information submission or updates.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 pt-1 sm:pt-4">
+        <button type="button" onclick="selectMode('new')" class="group p-4 sm:p-6 rounded-xl border-2 border-emerald-200 hover:border-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 transition text-left shadow-sm flex flex-col justify-between">
+          <div class="flex md:block items-center gap-3">
+            <div class="w-10 h-10 shrink-0 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-lg md:mb-4 group-hover:scale-105 transition-transform">+</div>
+            <div>
+              <h3 class="font-bold text-emerald-900 text-base sm:text-lg">New Faculty Entry</h3>
+              <p class="text-slate-600 text-xs mt-0.5 sm:mt-1">First-time encoding. An Employee ID will be auto-generated for you.</p>
+            </div>
+          </div>
+          <span class="hidden md:inline-flex mt-6 items-center text-xs font-semibold text-emerald-700 group-hover:translate-x-1 transition-transform">Start New Entry &rarr;</span>
+        </button>
+
+        <div class="p-4 sm:p-6 rounded-xl border-2 border-slate-200 bg-slate-50/50 text-left shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex md:block items-center gap-3">
+              <div class="w-10 h-10 shrink-0 rounded-lg bg-slate-700 text-white flex items-center justify-center font-bold text-lg md:mb-4">🔍</div>
+              <div>
+                <h3 class="font-bold text-slate-800 text-base sm:text-lg">Existing Faculty</h3>
+                <p class="text-slate-600 text-xs mt-0.5 sm:mt-1">Retrieve your record using your Employee ID to update information or files.</p>
+              </div>
+            </div>
+            <div class="mt-3 sm:mt-4">
+              <label for="searchEmpIdInput" class="block text-xs font-medium text-slate-700 mb-1">Enter Employee ID:</label>
+              <input type="text" id="searchEmpIdInput" placeholder="e.g. EMP-1001" autocapitalize="characters" class="w-full rounded-md border-slate-300 shadow-sm border p-2.5 text-sm focus:border-emerald-600 uppercase font-mono">
+            </div>
+          </div>
+          <button type="button" onclick="loadExistingRecord()" class="mt-3 sm:mt-4 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition">
+            Search & Edit Record
+          </button>
+        </div>
+      </div>
+
+      <div id="landingStatus" class="hidden p-3 rounded-md text-xs font-medium"></div>
+
+      <p class="text-[11px] text-slate-500 leading-relaxed">
+        Having trouble loading or saving? Please refresh the page
+        and try again, or contact the HR office.
+      </p>
+    </div>
+
+    <!-- FORM SCREEN -->
+    <div id="formScreen" class="hidden">
+      <div class="bg-slate-100 px-4 sm:px-8 py-3 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 text-xs">
+        <button type="button" onclick="showLanding()" class="text-emerald-700 font-semibold hover:underline flex items-center gap-1 py-1">
+          &larr; Back to Home
+        </button>
+        <span id="currentModeLabel" class="font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-100 text-emerald-800">
+          New Entry Mode
+        </span>
+      </div>
+
+      <form id="facultyForm" class="p-4 sm:p-8 space-y-6 sm:space-y-8" onsubmit="event.preventDefault();" novalidate>
+
+        <!-- PHONE ONLY: step progress -->
+        <!-- DESKTOP: clickable step tabs -->
+        <div id="stepTabs" class="hidden md:grid grid-cols-5 gap-2 -mt-2">
+          <button type="button" data-go="1" class="step-tab">1. Personal</button>
+          <button type="button" data-go="2" class="step-tab">2. Employment</button>
+          <button type="button" data-go="3" class="step-tab">3. Education</button>
+          <button type="button" data-go="4" class="step-tab">4. IDs</button>
+          <button type="button" data-go="5" class="step-tab">5. Trainings</button>
+        </div>
+
+        <!-- ALL SCREENS: step progress -->
+        <div id="stepper" class="-mt-1">
+          <div class="flex justify-between items-baseline text-xs mb-1.5">
+            <span id="stepLabel" class="font-semibold text-emerald-900">Personal Information</span>
+            <span id="stepCount" class="text-slate-500">Step 1 of 5</span>
+          </div>
+          <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div id="stepBar" class="h-1.5 bg-emerald-600 rounded-full transition-all duration-300" style="width:20%"></div>
+          </div>
+        </div>
+        
+        <!-- Section 1: Personal Information -->
+        <section class="form-step space-y-4" data-step="1" data-title="Personal Information">
+          <h2 class="text-base sm:text-lg font-semibold text-emerald-900 border-b-2 border-emerald-600 pb-1">
+            1. Personal Information
+          </h2>
+
+          <div class="flex flex-col md:flex-row gap-5 md:gap-6 items-stretch md:items-start">
+            
+            <!-- Photo Upload Box -->
+            <div class="flex flex-col items-center justify-center bg-slate-50 p-4 rounded-xl border border-slate-200 w-full md:w-48 shrink-0">
+              <div class="w-32 h-32 bg-slate-200 rounded-lg overflow-hidden border-2 border-dashed border-slate-300 flex items-center justify-center relative shadow-inner">
+                <img id="photoPreview" src="" alt="Faculty Photo" class="hidden w-full h-full object-cover">
+                <div id="photoPlaceholder" class="text-center p-2 text-slate-400">
+                  <div class="text-3xl mb-1">👤</div>
+                  <span class="text-[10px] font-semibold block leading-tight">2x2 Photo</span>
+                  <span class="text-[9px] text-slate-400 font-normal">(Optional)</span>
+                </div>
+              </div>
+              <label class="mt-3 cursor-pointer inline-flex items-center px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-md border border-emerald-200 transition">
+                <span>Upload Photo</span>
+                <input type="file" id="photoFile" accept="image/*" onchange="previewPhoto(this)" class="hidden">
+              </label>
+              <div id="photoLinkBox" class="text-[11px] text-emerald-700 underline mt-1 hidden"></div>
+            </div>
+
+            <!-- Personal Fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+              <div>
+                <label for="email" class="block text-sm font-medium text-slate-700">Email Address *</label>
+                <input type="email" id="email" required inputmode="email" autocomplete="email" placeholder="e.g. juan@school.edu.ph" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+              </div>
+              <div>
+                <label for="lastName" class="block text-sm font-medium text-slate-700">Last Name *</label>
+                <input type="text" id="lastName" required autocomplete="family-name" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+              </div>
+              <div>
+                <label for="firstName" class="block text-sm font-medium text-slate-700">First Name *</label>
+                <input type="text" id="firstName" required autocomplete="given-name" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+              </div>
+              <div>
+                <label for="gender" class="block text-sm font-medium text-slate-700">Gender *</label>
+                <select id="gender" required class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600 bg-white">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-Binary">Non-Binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+              <div>
+                <label for="ipGroup" class="block text-sm font-medium text-slate-700">Indigenous People Group <span class="text-xs text-slate-400">(If any)</span></label>
+                <input type="text" id="ipGroup" placeholder="e.g., Subanen, Tagalog, N/A" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+              </div>
+              <div>
+                <label for="address" class="block text-sm font-medium text-slate-700">Residential Address *</label>
+                <input type="text" id="address" required autocomplete="street-address" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Section 2: Employment Assignment -->
+        <section class="form-step space-y-4" data-step="2" data-title="Employment">
+          <h2 class="text-base sm:text-lg font-semibold text-emerald-900 border-b-2 border-emerald-600 pb-1">
+            2. Employment & Institutional Assignment
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label for="rankPosition" class="block text-sm font-medium text-slate-700">Rank / Position *</label>
+              <input type="text" id="rankPosition" required placeholder="e.g., Associate Professor II" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+            </div>
+            <div>
+              <label for="category" class="block text-sm font-medium text-slate-700">Employment Category *</label>
+              <select id="category" required class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600 bg-white">
+                <option value="">Select Category</option>
+                <option value="Regular">Regular</option>
+                <option value="Non-regular">Non-regular</option>
+              </select>
+            </div>
+            <div>
+              <label for="type" class="block text-sm font-medium text-slate-700">Employment Type *</label>
+              <select id="type" required class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600 bg-white">
+                <option value="">Select Type</option>
+                <option value="Full-Time">Full-Time</option>
+                <option value="Part-Time">Part-Time</option>
+              </select>
+            </div>
+            <div>
+              <label for="campus" class="block text-sm font-medium text-slate-700">Campus Assignment *</label>
+              <select id="campus" required class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600 bg-white">
+                <option value="">Select Campus</option>
+                <option value="Main">Main</option>
+                <option value="Pagadian">Pagadian</option>
+                <option value="Dumingag">Dumingag</option>
+                <option value="CMSE">CMSE</option>
+              </select>
+            </div>
+            <div>
+              <label for="school" class="block text-sm font-medium text-slate-700">School / Unit *</label>
+              <select id="school" required class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600 bg-white">
+                <option value="">Select School</option>
+                <option value="SAS">SAS</option>
+                <option value="SAFES">SAFES</option>
+                <option value="SBM">SBM</option>
+                <option value="SET">SET</option>
+                <option value="SGS">SGS</option>
+                <option value="SOCJE">SOCJE</option>
+                <option value="SON">SON</option>
+                <option value="SOL">SOL</option>
+                <option value="STE">STE</option>
+                <option value="SCS">SCS</option>
+              </select>
+            </div>
+            <div>
+              <label for="program" class="block text-sm font-medium text-slate-700">Program / Department *</label>
+              <input type="text" id="program" required placeholder="e.g., BS Information Technology" class="mt-1 w-full rounded-md border-slate-300 shadow-sm border p-2.5 focus:border-emerald-600">
+            </div>
+
+            <!-- Optional Employment Record Slot -->
+            <div class="sm:col-span-2 lg:col-span-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200 mt-2">
+              <label for="empRecordFile" class="block text-sm font-semibold text-emerald-900">Employment Record <span class="text-xs text-emerald-700 font-normal">(Optional File from HR)</span></label>
+              <div id="empRecordPreviewBox" class="text-xs my-2 hidden"></div>
+              <input type="file" id="empRecordFile" accept=".pdf,.png,.jpg,.jpeg" class="mt-1 block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200">
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: Educational Background -->
+        <section class="form-step space-y-4" data-step="3" data-title="Education">
+          <h2 class="text-base sm:text-lg font-semibold text-emerald-900 border-b-2 border-emerald-600 pb-1">
+            3. Educational Background
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div class="flex justify-between items-center gap-2">
+                <label class="block text-sm font-bold text-slate-800">Bachelor's Degree(s) *</label>
+                <button type="button" onclick="addBachelorField()" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded font-semibold hover:bg-emerald-200 shrink-0">+ Add</button>
+              </div>
+              <div id="bachelorContainer" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div class="flex justify-between items-center gap-2">
+                <label class="block text-sm font-bold text-slate-800">Master's Degree(s) <span class="text-xs font-normal text-slate-500">(If any)</span></label>
+                <button type="button" onclick="addMasterField()" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded font-semibold hover:bg-emerald-200 shrink-0">+ Add</button>
+              </div>
+              <div id="masterContainer" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div class="flex justify-between items-center gap-2">
+                <label class="block text-sm font-bold text-slate-800">PhD / Doctorate(s) <span class="text-xs font-normal text-slate-500">(If any)</span></label>
+                <button type="button" onclick="addPhdField()" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded font-semibold hover:bg-emerald-200 shrink-0">+ Add</button>
+              </div>
+              <div id="phdContainer" class="space-y-2"></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-4">
+            <label for="torFile" class="block text-sm font-medium text-slate-700 mb-1">Upload Transcript of Records (TOR) or Diplomas</label>
+            <div id="torPreviewBox" class="text-xs mb-2 hidden space-y-1"></div>
+            <input type="file" id="torFile" accept=".pdf,.png,.jpg,.jpeg" multiple class="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+          </div>
+        </section>
+
+        <!-- Section 4: Identification Details -->
+        <section class="form-step space-y-4" data-step="4" data-title="Identification">
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b-2 border-emerald-600 pb-1">
+            <h2 class="text-base sm:text-lg font-semibold text-emerald-900">
+              4. Identification Details
+            </h2>
+            <button type="button" onclick="addIdItem()" class="text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 py-1.5 px-3 rounded flex items-center gap-1 transition mb-1">
+              + Add ID
+            </button>
+          </div>
+          <div id="idsContainer" class="space-y-4"></div>
+        </section>
+
+        <!-- Section 5: Training & Seminars -->
+        <section class="form-step space-y-4" data-step="5" data-title="Trainings & Seminars">
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b-2 border-emerald-600 pb-1">
+            <h2 class="text-base sm:text-lg font-semibold text-emerald-900">
+              5. Training & Seminars Attended
+            </h2>
+            <button type="button" onclick="addTrainingItem()" class="text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 py-1.5 px-3 rounded flex items-center gap-1 transition mb-1">
+              + Add Training
+            </button>
+          </div>
+          <div id="trainingsContainer" class="space-y-4"></div>
+        </section>
+
+        <!-- PHONE ONLY: Back / Next -->
+        <div id="stepNav" class="flex gap-3 pt-2 md:max-w-md md:ml-auto">
+          <button type="button" id="btnPrev" onclick="prevStep()" class="flex-1 py-3 rounded-lg border border-slate-300 text-slate-700 bg-white font-medium">&larr; Back</button>
+          <button type="button" id="btnNext" onclick="nextStep()" class="flex-1 py-3 rounded-lg bg-emerald-700 text-white font-semibold">Next &rarr;</button>
+        </div>
+
+        <!-- Status Message Display -->
+        <div id="statusMessage" class="hidden p-4 rounded-md text-sm font-medium"></div>
+
+        <!-- Action Buttons (stacked full-width on phone, in a row on desktop) -->
+        <div id="actionBar" class="pt-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <button type="button" onclick="showLanding()" class="w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 font-medium transition shadow-sm">
+            Cancel / Home
+          </button>
+          
+          <button type="button" id="btnSave" onclick="handleSave()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-semibold transition shadow-sm">
+            Save Record & Email PDF
+          </button>
+
+          <button type="button" id="btnUpdate" onclick="handleUpdate()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition shadow-sm hidden">
+            Update Record & Email PDF
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+
+</div><!-- /appScroll -->
+
+  <!-- Client JavaScript -->
+  <script>
+    let activeMode = 'new';
+    let deletedUrls = [];
+
+    // ⚠️ PASTE YOUR NEW WEB APP /exec LINK HERE (Apps Script → Deploy → Manage deployments)
+    const WEB_APP_URL = "PASTE_YOUR_NEW_EXEC_LINK_HERE";
+
+    /**
+     * Opened from GitHub Pages / Google Sites / Netlify -> uses fetch() to doPost()
+     * (credentials: 'omit' = no Google account cookies, so the
+     *  multiple-account problem cannot happen)
+     * Opened from the Apps Script /exec link -> uses google.script.run
+     */
+    function handleServerError(err, onFail) {
+      const msg = String((err && err.message) || err);
+      let text;
+      if (msg === "SERVER_OK_UPLOAD_FAILED") {
+        text = "The server is working, but saving failed. This usually means the uploaded files are too big or the connection dropped. Try again with fewer or smaller files (PDFs under 10 MB), or save first without files and add them later using Search & Edit.";
+      } else if (msg === "SERVER_OK_REQUEST_FAILED") {
+        text = "The server is working, but this request failed. Please refresh the page and try again.";
+      } else if (msg === "SERVER_UNREACHABLE") {
+        text = "Cannot reach the server. Check your internet. If the internet is fine, the Apps Script owner must check the link (open WEB_APP_URL + ?ping=1 in Incognito), set Who has access: Anyone, and Deploy a New version.";
+      } else if (/failed to fetch|network/i.test(msg)) {
+        text = "Cannot reach the server. Check your internet. If the internet is fine, the Apps Script owner must: (1) Run authorizeScript in the editor, (2) set Who has access: Anyone, (3) Deploy a New version.";
+      } else if (/authoriz|permission|unable to open|ScriptError/i.test(msg)) {
+        text = "Connection problem. If you are signed in to multiple Google accounts, please open this page in an Incognito / Private window and try again.";
+      } else {
+        text = "Error: " + msg;
+      }
+
+      const formVisible = !document.getElementById('formScreen').classList.contains('hidden');
+      if (formVisible) showStatus(text, true);
+      else showLandingStatus(text, true);
+
+      if (typeof onFail === 'function') onFail(err);
+    }
+
+    function callServer(fnName, args, onSuccess, onFail) {
+      const insideAppsScript =
+        typeof google !== 'undefined' && google.script && google.script.run;
+
+      // Mode 1: opened from the Apps Script /exec link
+      if (insideAppsScript) {
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(err => handleServerError(err, onFail))[fnName](...args);
+        return;
+      }
+
+      // Mode 2: opened from GitHub Pages / Google Sites / Netlify
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+        body: JSON.stringify({ action: fnName, args: args }),
+        credentials: 'omit',
+        redirect: 'follow'
+      })
+        .then(r => r.text())
+        .then(txt => {
+          let res;
+          try {
+            res = JSON.parse(txt);
+          } catch (e) {
+            if (WEB_APP_URL.indexOf('PASTE_YOUR') !== -1 || WEB_APP_URL.indexOf('/exec') === -1) {
+              throw new Error("WEB_APP_URL is not set correctly. Paste your Apps Script Web app link ending in /exec.");
+            }
+            if (/accounts\.google\.com|ServiceLogin|Sign in/i.test(txt)) {
+              throw new Error("The web app is asking for sign-in. In Apps Script set 'Who has access: Anyone', then Deploy a New version.");
+            }
+            if (/doPost/i.test(txt)) {
+              throw new Error("doPost() was not found. Add doPost to Code.gs, then Deploy → Manage deployments → Edit → New version.");
+            }
+            throw new Error("The server returned a web page instead of data. Check WEB_APP_URL and redeploy a New version.");
+          }
+          if (!res.ok) throw new Error(res.error || 'Unknown server error');
+          onSuccess(res.data);
+        })
+        .catch(err => {
+          const msg = String((err && err.message) || err);
+          if (!/failed to fetch|network|load failed/i.test(msg)) return handleServerError(err, onFail);
+          diagnoseConnection(fnName).then(text => {
+            handleServerError(new Error(text), onFail);
+          });
+        });
+    }
+
+    // When a request fails, test the server with ?ping=1 to explain WHY
+    async function diagnoseConnection(fnName) {
+      let reachable = false;
+      try {
+        const r = await fetch(WEB_APP_URL + '?ping=1', { credentials: 'omit', redirect: 'follow' });
+        const j = JSON.parse(await r.text());
+        reachable = !!j.ok;
+      } catch (e) {}
+
+      if (reachable && (fnName === 'saveRecord' || fnName === 'updateRecord')) {
+        return "SERVER_OK_UPLOAD_FAILED";
+      }
+      if (reachable) {
+        return "SERVER_OK_REQUEST_FAILED";
+      }
+      return "SERVER_UNREACHABLE";
+    }
+
+    function scrollToTop() {
+      const box = document.getElementById('appScroll');
+      if (box) box.scrollTop = 0;
+      try { window.scrollTo({ top: 0 }); } catch (e) {}
+    }
+
+    /* ===== Step-by-step mode ===== */
+    let currentStep = 1;
+    const TOTAL_STEPS = 5;
+    const phoneQuery = window.matchMedia('(max-width: 767px)');
+    const isPhone = () => true; // step-by-step on phone AND desktop
+
+    function stepSection(n) {
+      return document.querySelector('.form-step[data-step="' + n + '"]');
+    }
+
+    function renderSteps() {
+      document.querySelectorAll('.form-step').forEach(sec => {
+        const n = Number(sec.dataset.step);
+        sec.classList.toggle('hidden', isPhone() && n !== currentStep);
+      });
+      const cur = stepSection(currentStep);
+      document.getElementById('stepLabel').textContent = cur.dataset.title;
+      document.getElementById('stepCount').textContent = 'Step ' + currentStep + ' of ' + TOTAL_STEPS;
+      document.getElementById('stepBar').style.width = (currentStep / TOTAL_STEPS * 100) + '%';
+
+      document.querySelectorAll('.step-tab').forEach(tab => {
+        const n = Number(tab.dataset.go);
+        tab.classList.toggle('is-active', n === currentStep);
+        tab.classList.toggle('is-done', n < currentStep);
+      });
+
+      const last = currentStep === TOTAL_STEPS;
+      document.getElementById('btnPrev').classList.toggle('invisible', currentStep === 1);
+      document.getElementById('btnNext').classList.toggle('hidden', last);
+      // Save/Update buttons: only on the last step
+      document.getElementById('actionBar').classList.toggle('hidden', isPhone() && !last);
+    }
+
+    function firstInvalidIn(n) {
+      const fields = stepSection(n).querySelectorAll('input, select, textarea');
+      return Array.from(fields).find(f => !f.checkValidity());
+    }
+
+    function nextStep() {
+      const bad = firstInvalidIn(currentStep);
+      if (bad) { bad.reportValidity(); return; }
+      currentStep = Math.min(TOTAL_STEPS, currentStep + 1);
+      renderSteps();
+      scrollToTop();
+    }
+
+    function prevStep() {
+      currentStep = Math.max(1, currentStep - 1);
+      renderSteps();
+      scrollToTop();
+    }
+
+    function goToStep(n) {
+      currentStep = n;
+      renderSteps();
+    }
+
+    // Checks every section and jumps to the step that has the problem
+    function validateAll() {
+      for (let n = 1; n <= TOTAL_STEPS; n++) {
+        const bad = firstInvalidIn(n);
+        if (bad) {
+          goToStep(n);
+          setTimeout(() => bad.reportValidity(), 60);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    document.addEventListener('click', e => {
+      const tab = e.target.closest('.step-tab');
+      if (!tab) return;
+      const target = Number(tab.dataset.go);
+      for (let n = currentStep; n < target; n++) {
+        const bad = firstInvalidIn(n);
+        if (bad) { goToStep(n); setTimeout(() => bad.reportValidity(), 60); return; }
+      }
+      goToStep(target);
+      scrollToTop();
+    });
+
+    if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', renderSteps);
+    else phoneQuery.addListener(renderSteps);
+
+    function setButtonsBusy(isBusy) {
+      ['btnSave', 'btnUpdate'].forEach(id => {
+        document.getElementById(id).disabled = isBusy;
+      });
+    }
+
+    function previewPhoto(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById('photoPreview');
+          img.src = e.target.result;
+          img.classList.remove('hidden');
+          document.getElementById('photoPlaceholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    const REMOVE_BTN_INLINE = '<button type="button" onclick="this.parentElement.remove()" class="remove-btn text-red-500 font-bold hover:bg-red-50" aria-label="Remove">✕</button>';
+    const REMOVE_BTN_CORNER = '<button type="button" onclick="this.parentElement.remove()" class="remove-btn absolute top-2 right-2 text-red-500 font-bold bg-white border border-red-100 hover:bg-red-50 text-xs" aria-label="Remove">✕</button>';
+
+    function addBachelorField(val = "") {
+      const container = document.getElementById('bachelorContainer');
+      const div = document.createElement('div');
+      div.className = "flex gap-2 items-center";
+      div.innerHTML = `
+        <input type="text" class="bachelor-input w-full min-w-0 rounded-md border-slate-300 border p-2.5 text-sm" value="${val}" placeholder="Degree Title" required>
+        ${container.children.length > 0 ? REMOVE_BTN_INLINE : ''}
+      `;
+      container.appendChild(div);
+    }
+
+    function addMasterField(val = "") {
+      const container = document.getElementById('masterContainer');
+      const div = document.createElement('div');
+      div.className = "flex gap-2 items-center";
+      div.innerHTML = `
+        <input type="text" class="master-input w-full min-w-0 rounded-md border-slate-300 border p-2.5 text-sm" value="${val}" placeholder="Degree Title">
+        ${REMOVE_BTN_INLINE}
+      `;
+      container.appendChild(div);
+    }
+
+    function addPhdField(val = "") {
+      const container = document.getElementById('phdContainer');
+      const div = document.createElement('div');
+      div.className = "flex gap-2 items-center";
+      div.innerHTML = `
+        <input type="text" class="phd-input w-full min-w-0 rounded-md border-slate-300 border p-2.5 text-sm" value="${val}" placeholder="Degree Title">
+        ${REMOVE_BTN_INLINE}
+      `;
+      container.appendChild(div);
+    }
+
+    function addIdItem(title="", agency="", number="", validity="", existingUrl="") {
+      const container = document.getElementById('idsContainer');
+      const div = document.createElement('div');
+      div.className = "id-item p-4 pt-10 sm:pt-4 bg-slate-50 rounded-lg border border-slate-200 relative space-y-3";
+      
+      div.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:pr-8">
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Title of ID *</label>
+            <input type="text" class="id-title mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${title}" placeholder="e.g. PRC License" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Issuing Agency *</label>
+            <input type="text" class="id-agency mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${agency}" placeholder="e.g. PRC" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700">ID Number *</label>
+            <input type="text" class="id-number mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${number}" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Validity Date *</label>
+            <input type="date" class="id-validity mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm bg-white" value="${validity}" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700">Upload ID Document <span class="text-slate-400">(Saved with ID Number as name)</span></label>
+          ${existingUrl && existingUrl !== 'No File' ? `<div class="text-xs my-1 text-emerald-700"><a href="${existingUrl}" target="_blank" class="underline">📄 View Existing ID Doc</a></div>` : ''}
+          <input type="file" class="id-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
+        </div>
+        ${container.children.length > 0 ? REMOVE_BTN_CORNER : ''}
+      `;
+      if (container.children.length === 0) div.classList.remove('pt-10');
+      div.dataset.existingUrl = existingUrl || "";
+      container.appendChild(div);
+    }
+
+    function addTrainingItem(cat="", title="", provider="", loc="", startDate="", endDate="", existingUrl="") {
+      const container = document.getElementById('trainingsContainer');
+      const div = document.createElement('div');
+      div.className = "training-item p-4 pt-10 sm:pt-4 bg-slate-50 rounded-lg border border-slate-200 relative space-y-3";
+      
+      div.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:pr-8">
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Scope *</label>
+            <select class="training-category mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm bg-white" required>
+              <option value="">Select Scope</option>
+              <option value="Local" ${cat === 'Local' ? 'selected' : ''}>Local</option>
+              <option value="International" ${cat === 'International' ? 'selected' : ''}>International</option>
+            </select>
+          </div>
+          <div class="sm:col-span-1 lg:col-span-2">
+            <label class="block text-xs font-medium text-slate-700">Training Title *</label>
+            <input type="text" class="training-title mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${title}" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Provider *</label>
+            <input type="text" class="training-provider mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${provider}" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700">Location *</label>
+            <input type="text" class="training-location mt-1 w-full rounded-md border-slate-300 border p-2.5 text-sm" value="${loc}" required>
+          </div>
+          <div class="sm:col-span-2 lg:col-span-1">
+            <label class="block text-xs font-medium text-slate-700">Inclusive Dates *</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+              <div>
+                <span class="block text-[10px] text-slate-500 mb-0.5">From</span>
+                <input type="date" class="training-start-date w-full rounded-md border-slate-300 border p-2.5 text-xs bg-white" value="${startDate}" required>
+              </div>
+              <div>
+                <span class="block text-[10px] text-slate-500 mb-0.5">To</span>
+                <input type="date" class="training-end-date w-full rounded-md border-slate-300 border p-2.5 text-xs bg-white" value="${endDate}" required>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700">Upload Training Certificate <span class="text-slate-400">(Saved with Title keywords)</span></label>
+          ${existingUrl && existingUrl !== 'No File' ? `<div class="text-xs my-1 text-emerald-700"><a href="${existingUrl}" target="_blank" class="underline">📄 View Existing Certificate</a></div>` : ''}
+          <input type="file" class="training-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
+        </div>
+        ${container.children.length > 0 ? REMOVE_BTN_CORNER : ''}
+      `;
+      if (container.children.length === 0) div.classList.remove('pt-10');
+      div.dataset.existingUrl = existingUrl || "";
+      container.appendChild(div);
+    }
+
+    function showLanding() {
+      document.getElementById('landingScreen').classList.remove('hidden');
+      document.getElementById('formScreen').classList.add('hidden');
+      document.getElementById('empIdBadge').classList.add('hidden');
+      document.getElementById('facultyForm').reset();
+      clearFormContainers();
+      hideStatus();
+      setButtonsBusy(false);
+      scrollToTop();
+    }
+
+    function clearFormContainers() {
+      document.getElementById('bachelorContainer').innerHTML = '';
+      document.getElementById('masterContainer').innerHTML = '';
+      document.getElementById('phdContainer').innerHTML = '';
+      document.getElementById('idsContainer').innerHTML = '';
+      document.getElementById('trainingsContainer').innerHTML = '';
+      document.getElementById('torPreviewBox').classList.add('hidden');
+      document.getElementById('empRecordPreviewBox').classList.add('hidden');
+      
+      const img = document.getElementById('photoPreview');
+      img.src = '';
+      img.classList.add('hidden');
+      document.getElementById('photoPlaceholder').classList.remove('hidden');
+      document.getElementById('photoLinkBox').classList.add('hidden');
+      deletedUrls = [];
+    }
+
+    function selectMode(mode) {
+      activeMode = mode;
+      document.getElementById('landingScreen').classList.add('hidden');
+      document.getElementById('formScreen').classList.remove('hidden');
+      document.getElementById('empIdBadge').classList.remove('hidden');
+      document.getElementById('facultyForm').reset();
+      clearFormContainers();
+      hideStatus();
+      setButtonsBusy(false);
+      currentStep = 1;
+      renderSteps();
+      scrollToTop();
+
+      const label = document.getElementById('currentModeLabel');
+      const btnSave = document.getElementById('btnSave');
+      const btnUpdate = document.getElementById('btnUpdate');
+
+      if (mode === 'new') {
+        label.textContent = "New Entry Mode";
+        label.className = "font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-100 text-emerald-800";
+        btnSave.classList.remove('hidden');
+        btnUpdate.classList.add('hidden');
+        generateId();
+        addBachelorField();
+        addIdItem();
+        addTrainingItem();
+      } else {
+        label.textContent = "Edit Record Mode";
+        label.className = "font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-amber-100 text-amber-800";
+        btnSave.classList.add('hidden');
+        btnUpdate.classList.remove('hidden');
+      }
+    }
+
+    function showLandingStatus(msg, isError = false) {
+      const el = document.getElementById('landingStatus');
+      el.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800');
+      if (isError) el.classList.add('bg-red-100', 'text-red-800');
+      else el.classList.add('bg-emerald-100', 'text-emerald-800');
+      el.textContent = msg;
+    }
+
+    // Shows the message and scrolls to it, so phone users (at the bottom of a long form) can see it
+    function showStatus(msg, isError = false) {
+      const el = document.getElementById('statusMessage');
+      el.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800');
+      if (isError) el.classList.add('bg-red-100', 'text-red-800');
+      else el.classList.add('bg-emerald-100', 'text-emerald-800');
+      el.textContent = msg;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideStatus() {
+      document.getElementById('statusMessage').classList.add('hidden');
+      document.getElementById('landingStatus').classList.add('hidden');
+    }
+
+    function generateId() {
+      document.getElementById('empId').value = "Generating...";
+      callServer(
+        'generateEmployeeID',
+        [],
+        id => document.getElementById('empId').value = id,
+        () => document.getElementById('empId').value = "Error"
+      );
+    }
+
+    function renderTorPreviews(urlStr) {
+      if (!urlStr || urlStr === "N/A") return;
+      const box = document.getElementById('torPreviewBox');
+      box.innerHTML = '<span class="font-bold text-slate-700 block mb-1">Existing TOR / Diplomas:</span>';
+      const urls = urlStr.split(" | ");
+      urls.forEach((url, idx) => {
+        if (!url) return;
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between gap-2 bg-white p-2 rounded border border-slate-200";
+        div.innerHTML = `
+          <a href="${url}" target="_blank" class="text-emerald-700 underline font-medium">📄 View Document ${urls.length > 1 ? (idx + 1) : ''}</a>
+          <button type="button" class="text-red-600 hover:text-red-800 font-semibold text-xs px-2 py-1 shrink-0" onclick="deletedUrls.push('${url}'); this.parentElement.remove();">Delete</button>
+        `;
+        box.appendChild(div);
+      });
+      box.classList.remove('hidden');
+    }
+
+    function loadExistingRecord() {
+      const empId = document.getElementById('searchEmpIdInput').value.trim();
+      if (!empId) {
+        showLandingStatus("Please enter an Employee ID first.", true);
+        return;
+      }
+
+      showLandingStatus("Searching for record... Please wait.");
+      callServer('searchRecord', [empId], res => {
+        if (res.found) {
+          selectMode('edit');
+          const rec = res.record;
+          document.getElementById('empId').value = rec.empId;
+          document.getElementById('email').value = rec.email || "";
+          document.getElementById('lastName').value = rec.lastName;
+          document.getElementById('firstName').value = rec.firstName;
+          document.getElementById('gender').value = rec.gender;
+          document.getElementById('ipGroup').value = rec.ipGroup;
+          document.getElementById('address').value = rec.address;
+          document.getElementById('rankPosition').value = rec.rankPosition;
+          document.getElementById('category').value = rec.category;
+          document.getElementById('type').value = rec.type || "Full-Time";
+          document.getElementById('campus').value = rec.campus;
+          document.getElementById('school').value = rec.school;
+          document.getElementById('program').value = rec.program;
+
+          if (rec.photoUrl && rec.photoUrl !== "N/A") {
+            const img = document.getElementById('photoPreview');
+            img.src = rec.photoUrl;
+            img.classList.remove('hidden');
+            document.getElementById('photoPlaceholder').classList.add('hidden');
+            
+            const linkBox = document.getElementById('photoLinkBox');
+            linkBox.innerHTML = `<a href="${rec.photoUrl}" target="_blank">View Full Image</a>`;
+            linkBox.classList.remove('hidden');
+          }
+
+          if (rec.empRecordUrl && rec.empRecordUrl !== "N/A") {
+            const empBox = document.getElementById('empRecordPreviewBox');
+            empBox.innerHTML = `<a href="${rec.empRecordUrl}" target="_blank" class="text-emerald-700 underline font-medium">📄 View Existing Employment Record</a>`;
+            empBox.classList.remove('hidden');
+          }
+
+          (rec.bachelorDegrees || []).forEach(d => addBachelorField(d));
+          (rec.masterDegrees || []).forEach(d => addMasterField(d));
+          (rec.phdDegrees || []).forEach(d => addPhdField(d));
+
+          (rec.idsList || []).forEach(id => {
+            addIdItem(id.title, id.agency, id.number, id.validity ? new Date(id.validity).toISOString().split('T')[0] : "", id.docUrl);
+          });
+
+          (rec.trainingsList || []).forEach(tr => {
+            addTrainingItem(tr.category, tr.title, tr.provider, tr.location, tr.startDate, tr.endDate, tr.certUrl);
+          });
+
+          renderTorPreviews(rec.torUrl);
+
+          showStatus("Record loaded for Employee ID: " + rec.empId);
+          scrollToTop();
+        } else {
+          showLandingStatus(res.message, true);
+        }
+      });
+    }
+
+    /* ===== File handling: shrink photos/images so uploads are fast and small ===== */
+    const MAX_FILE_MB = 10;    // max size for one PDF (images are auto-shrunk)
+    const MAX_TOTAL_MB = 35;   // max size of everything sent in one save
+
+    function readAsBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Resizes phone photos (often 4–8 MB) to max 1600px JPEG (~300–600 KB)
+    function compressImage(file, maxSide = 1600, quality = 0.82) {
+      return new Promise(resolve => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          const scale = Math.min(1, maxSide / Math.max(width, height));
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(blob => resolve(blob && blob.size < file.size ? blob : file), 'image/jpeg', quality);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    async function fileToPayload(file) {
+      const isImage = /^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(file.type);
+      let blob = file, name = file.name, type = file.type || 'application/octet-stream';
+
+      if (isImage) {
+        const small = await compressImage(file);
+        if (small !== file) {
+          blob = small;
+          type = 'image/jpeg';
+          name = name.replace(/\.[^.]+$/, '') + '.jpg';
+        }
+      } else if (file.size > MAX_FILE_MB * 1024 * 1024) {
+        throw new Error('"' + file.name + '" is ' + (file.size / 1048576).toFixed(1) +
+          ' MB. Please upload files smaller than ' + MAX_FILE_MB + ' MB (compress the PDF first).');
+      }
+      return { name: name, type: type, data: await readAsBase64(blob) };
+    }
+
+    async function getSingleFileData(inputEl) {
+      if (!inputEl || !inputEl.files || inputEl.files.length === 0) return null;
+      return fileToPayload(inputEl.files[0]);
+    }
+
+    async function getMultipleFilesData(inputId) {
+      const input = document.getElementById(inputId);
+      if (!input || !input.files || input.files.length === 0) return [];
+      return Promise.all(Array.from(input.files).map(fileToPayload));
+    }
+
+    function checkTotalSize(data) {
+      const mb = JSON.stringify(data).length / 1048576;
+      if (mb > MAX_TOTAL_MB) {
+        throw new Error('Your uploads are too large in total (' + mb.toFixed(1) + ' MB). ' +
+          'Please remove or compress some files (max about ' + MAX_TOTAL_MB + ' MB per save).');
+      }
+    }
+
+    async function getFormData() {
+      const photoFile = await getSingleFileData(document.getElementById('photoFile'));
+      const empRecordFile = await getSingleFileData(document.getElementById('empRecordFile'));
+      const torFiles = await getMultipleFilesData('torFile');
+
+      const bachelorDegrees = Array.from(document.querySelectorAll('.bachelor-input')).map(i => i.value.trim()).filter(Boolean);
+      const masterDegrees = Array.from(document.querySelectorAll('.master-input')).map(i => i.value.trim()).filter(Boolean);
+      const phdDegrees = Array.from(document.querySelectorAll('.phd-input')).map(i => i.value.trim()).filter(Boolean);
+
+      const idElements = Array.from(document.querySelectorAll('.id-item'));
+      const ids = await Promise.all(idElements.map(async el => {
+        const fileInput = el.querySelector('.id-file');
+        const fileData = await getSingleFileData(fileInput);
+        return {
+          title: el.querySelector('.id-title').value.trim(),
+          agency: el.querySelector('.id-agency').value.trim(),
+          number: el.querySelector('.id-number').value.trim(),
+          validity: el.querySelector('.id-validity').value.trim(),
+          file: fileData,
+          existingUrl: el.dataset.existingUrl || ""
+        };
+      }));
+
+      const trElements = Array.from(document.querySelectorAll('.training-item'));
+      const trainings = await Promise.all(trElements.map(async el => {
+        const fileInput = el.querySelector('.training-file');
+        const fileData = await getSingleFileData(fileInput);
+        return {
+          category: el.querySelector('.training-category').value.trim(),
+          title: el.querySelector('.training-title').value.trim(),
+          provider: el.querySelector('.training-provider').value.trim(),
+          location: el.querySelector('.training-location').value.trim(),
+          startDate: el.querySelector('.training-start-date').value.trim(),
+          endDate: el.querySelector('.training-end-date').value.trim(),
+          file: fileData,
+          existingUrl: el.dataset.existingUrl || ""
+        };
+      }));
+
+      return {
+        empId: document.getElementById('empId').value,
+        email: document.getElementById('email').value,
+        lastName: document.getElementById('lastName').value,
+        firstName: document.getElementById('firstName').value,
+        gender: document.getElementById('gender').value,
+        ipGroup: document.getElementById('ipGroup').value,
+        address: document.getElementById('address').value,
+        rankPosition: document.getElementById('rankPosition').value,
+        category: document.getElementById('category').value,
+        type: document.getElementById('type').value,
+        campus: document.getElementById('campus').value,
+        school: document.getElementById('school').value,
+        program: document.getElementById('program').value,
+        photoFile: photoFile,
+        empRecordFile: empRecordFile,
+        bachelorDegrees: bachelorDegrees,
+        masterDegrees: masterDegrees,
+        phdDegrees: phdDegrees,
+        torFiles: torFiles,
+        ids: ids,
+        trainings: trainings,
+        deletedUrls: deletedUrls
+      };
+    }
+
+    async function handleSave() {
+      if (!validateAll()) return;
+      const empId = document.getElementById('empId').value;
+      if (!empId || empId === "Generating..." || empId === "Error") {
+        showStatus("Employee ID was not generated. Please go back and start a new entry again.", true);
+        return;
+      }
+
+      setButtonsBusy(true);
+      showStatus("Saving record, generating Bio-Data PDF, and emailing faculty member... Please wait.");
+      let data;
+      try {
+        showStatus("Preparing files... Please wait.");
+        data = await getFormData();
+        checkTotalSize(data);
+      } catch (e) {
+        setButtonsBusy(false);
+        showStatus(e.message, true);
+        return;
+      }
+      showStatus("Sending to server, generating Bio-Data PDF, and emailing... Please wait (this can take up to a minute).");
+
+      callServer('saveRecord', [data], res => {
+        setButtonsBusy(false);
+        showStatus(res.message, res.status !== 'success');
+      }, () => setButtonsBusy(false));
+    }
+
+    async function handleUpdate() {
+      if (!validateAll()) return;
+
+      setButtonsBusy(true);
+      showStatus("Updating record, regenerating Bio-Data PDF, and emailing faculty member... Please wait.");
+      let data;
+      try {
+        showStatus("Preparing files... Please wait.");
+        data = await getFormData();
+        checkTotalSize(data);
+      } catch (e) {
+        setButtonsBusy(false);
+        showStatus(e.message, true);
+        return;
+      }
+      showStatus("Sending to server, generating Bio-Data PDF, and emailing... Please wait (this can take up to a minute).");
+
+      callServer('updateRecord', [data], res => {
+        setButtonsBusy(false);
+        showStatus(res.message, res.status !== 'success');
+      }, () => setButtonsBusy(false));
+    }
+  </script>
+</body>
+</html>
