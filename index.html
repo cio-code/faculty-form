@@ -100,12 +100,12 @@
               <div class="w-10 h-10 shrink-0 rounded-lg bg-slate-700 text-white flex items-center justify-center font-bold text-lg md:mb-4">🔍</div>
               <div>
                 <h3 class="font-bold text-slate-800 text-base sm:text-lg">Existing Faculty</h3>
-                <p class="text-slate-600 text-xs mt-0.5 sm:mt-1">Retrieve your record using your Employee ID to update information or files.</p>
+                <p class="text-slate-600 text-xs mt-0.5 sm:mt-1">Retrieve your record using your Last Name to update information or files.</p>
               </div>
             </div>
             <div class="mt-3 sm:mt-4">
-              <label for="searchEmpIdInput" class="block text-xs font-medium text-slate-700 mb-1">Enter Employee ID:</label>
-              <input type="text" id="searchEmpIdInput" placeholder="e.g. EMP-1001" autocapitalize="characters" class="w-full rounded-md border-slate-300 shadow-sm border p-2.5 text-sm focus:border-emerald-600 uppercase font-mono">
+              <label for="searchEmpIdInput" class="block text-xs font-medium text-slate-700 mb-1">Enter Last Name:</label>
+              <input type="text" id="searchEmpIdInput" placeholder="e.g. Dela Cruz" autocapitalize="words" class="w-full rounded-md border-slate-300 shadow-sm border p-2.5 text-sm focus:border-emerald-600">
             </div>
           </div>
           <button type="button" onclick="loadExistingRecord()" class="mt-3 sm:mt-4 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition">
@@ -115,6 +115,7 @@
       </div>
 
       <div id="landingStatus" class="hidden p-3 rounded-md text-xs font-medium"></div>
+      <div id="searchChoices" class="hidden space-y-2 text-left"></div>
 
       <p class="text-[11px] text-slate-500 leading-relaxed">
         Having trouble loading or saving? Please refresh the page
@@ -814,6 +815,8 @@
     function hideStatus() {
       document.getElementById('statusMessage').classList.add('hidden');
       document.getElementById('landingStatus').classList.add('hidden');
+      const choices = document.getElementById('searchChoices');
+      if (choices) { choices.innerHTML = ''; choices.classList.add('hidden'); }
     }
 
     function generateId() {
@@ -845,14 +848,41 @@
     }
 
     function loadExistingRecord() {
-      const empId = document.getElementById('searchEmpIdInput').value.trim();
-      if (!empId) {
-        showLandingStatus("Please enter an Employee ID first.", true);
+      const lastName = document.getElementById('searchEmpIdInput').value.trim();
+      if (!lastName) {
+        showLandingStatus("Please enter your Last Name first.", true);
         return;
       }
-
+      const choices = document.getElementById('searchChoices');
+      choices.innerHTML = '';
+      choices.classList.add('hidden');
       showLandingStatus("Searching for record... Please wait.");
-      callServer('searchRecord', [empId], res => {
+      callServer('searchByLastName', [lastName], handleSearchResult);
+    }
+
+    // Used when several people share the same last name and one is picked
+    function loadByEmpId(empId) {
+      showLandingStatus("Loading record... Please wait.");
+      callServer('searchRecord', [empId], handleSearchResult);
+    }
+
+    function showChoices(choices, msg) {
+      showLandingStatus(msg || 'Several records found. Please choose yours.');
+      const box = document.getElementById('searchChoices');
+      box.innerHTML = '';
+      choices.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-full text-left p-3 rounded-lg border border-slate-300 bg-white hover:bg-emerald-50 text-sm';
+        const where = [c.campus, c.school].filter(Boolean).join(' / ');
+        b.textContent = c.firstName + (where ? ' — ' + where : '');
+        b.addEventListener('click', () => loadByEmpId(c.empId));
+        box.appendChild(b);
+      });
+      box.classList.remove('hidden');
+    }
+
+    function handleSearchResult(res) {
         if (res.found) {
           selectMode('edit');
           const rec = res.record;
@@ -903,10 +933,11 @@
 
           showStatus("Record loaded for Employee ID: " + rec.empId);
           scrollToTop();
+        } else if (res.choices && res.choices.length) {
+          showChoices(res.choices, res.message);
         } else {
           showLandingStatus(res.message, true);
         }
-      });
     }
 
     /* ===== File handling: shrink photos/images so uploads are fast and small ===== */
