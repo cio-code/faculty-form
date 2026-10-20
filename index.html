@@ -351,6 +351,11 @@
               + Add Training
             </button>
           </div>
+          <p class="text-xs sm:text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-md p-3">
+            <b>No training or seminar to add?</b> You can skip this step &mdash; just click
+            <b>Save Record</b> (or <b>Update Record</b> when editing).
+            Click <b>+ Add Training</b> only if you have one to record.
+          </p>
           <div id="trainingsContainer" class="space-y-4"></div>
         </section>
 
@@ -728,9 +733,8 @@
           ${existingFilesHtml(existingUrl, 'View Certificate')}
           <input type="file" accept=".pdf,.png,.jpg,.jpeg" multiple class="training-file mt-1 block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-emerald-50 file:text-emerald-700">
         </div>
-        ${container.children.length > 0 ? REMOVE_BTN_CORNER : ''}
+        ${REMOVE_BTN_CORNER}
       `;
-      if (container.children.length === 0) div.classList.remove('pt-10');
       div.dataset.existingUrl = existingUrl || "";
       container.appendChild(div);
     }
@@ -787,8 +791,8 @@
         btnUpdate.classList.add('hidden');
         generateId();
         addBachelorField();
-        // no ID box by default: IDs are optional (click + Add ID only if there is one)
-        addTrainingItem();
+        // no ID or training box by default: both are optional
+        // (click + Add ID / + Add Training only if there is one)
       } else {
         label.textContent = "Edit Record Mode";
         label.className = "font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-amber-100 text-amber-800";
